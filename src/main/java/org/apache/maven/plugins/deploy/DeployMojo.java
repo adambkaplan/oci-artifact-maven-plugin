@@ -18,18 +18,11 @@
  */
 package org.apache.maven.plugins.deploy;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.ArtifactUtils;
-import org.apache.maven.model.Plugin;
-import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -37,11 +30,8 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.artifact.ProjectArtifact;
-import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.deployment.DeployRequest;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 /**
  * Deploys an artifact to remote repository.
@@ -50,11 +40,7 @@ import org.eclipse.aether.util.artifact.ArtifactIdUtils;
  * @author <a href="mailto:jdcasey@apache.org">John Casey (refactoring only)</a>
  */
 @Mojo(name = "deploy", defaultPhase = LifecyclePhase.DEPLOY, threadSafe = true)
-public class DeployMojo extends AbstractDeployMojo {
-    private static final Pattern ALT_LEGACY_REPO_SYNTAX_PATTERN = Pattern.compile("(.+?)::(.+?)::(.+)");
-
-    private static final Pattern ALT_REPO_SYNTAX_PATTERN = Pattern.compile("(.+?)::(.+)");
-
+public class DeployMojo extends AbstractDeployProjectMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
@@ -128,24 +114,6 @@ public class DeployMojo extends AbstractDeployMojo {
     @Parameter(property = "maven.deploy.skip", defaultValue = "false")
     private String skip = Boolean.FALSE.toString();
 
-    /**
-     * Set this to <code>true</code> to allow incomplete project processing. By default, such projects are forbidden
-     * and Mojo will fail to process them. Incomplete project is a Maven Project that has any other packaging than
-     * "pom" and has no main artifact packaged. In the majority of cases, what user really wants here is a project
-     * with "pom" packaging and some classified artifact attached (typical example is some assembly being packaged
-     * and attached with classifier).
-     *
-     * @since 3.1.1
-     */
-    @Parameter(defaultValue = "false", property = "allowIncompleteProjects")
-    private boolean allowIncompleteProjects;
-
-    private enum State {
-        SKIPPED,
-        DEPLOYED,
-        TO_BE_DEPLOYED
-    }
-
     private static final String DEPLOY_PROCESSED_MARKER = DeployMojo.class.getName() + ".processed";
 
     private static final String DEPLOY_ALT_RELEASE_DEPLOYMENT_REPOSITORY =
@@ -215,7 +183,7 @@ public class DeployMojo extends AbstractDeployMojo {
 
         putState(state);
 
-        List<MavenProject> allProjectsUsingPlugin = getAllProjectsUsingPlugin();
+        List<MavenProject> allProjectsUsingPlugin = getAllProjectsUsingPlugin(reactorProjects, pluginDescriptor);
 
         if (allProjectsMarked(allProjectsUsingPlugin)) {
             deployAllAtOnce(allProjectsUsingPlugin);
@@ -264,154 +232,22 @@ public class DeployMojo extends AbstractDeployMojo {
         return true;
     }
 
-    private List<MavenProject> getAllProjectsUsingPlugin() {
-        ArrayList<MavenProject> result = new ArrayList<>();
-        for (MavenProject reactorProject : reactorProjects) {
-            if (hasExecution(reactorProject.getPlugin("org.apache.maven.plugins:maven-deploy-plugin"))) {
-                result.add(reactorProject);
-            }
-        }
-        return result;
-    }
-
-    private boolean hasExecution(Plugin plugin) {
-        if (plugin == null) {
-            return false;
-        }
-
-        for (PluginExecution execution : plugin.getExecutions()) {
-            if (!execution.getGoals().isEmpty() && !"none".equalsIgnoreCase(execution.getPhase())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void processProject(final MavenProject project, DeployRequest request) throws MojoExecutionException {
-        // always exists, as project exists
-        Artifact pomArtifact = RepositoryUtils.toArtifact(new ProjectArtifact(project));
-        // always exists, but at "init" is w/o file (packaging plugin assigns file to this when packaged)
-        Artifact projectArtifact = RepositoryUtils.toArtifact(project.getArtifact());
-
-        // pom project: pomArtifact and projectArtifact are SAME
-        // jar project: pomArtifact and projectArtifact are DIFFERENT
-        // incomplete project: is not pom project and projectArtifact has no file
-
-        // we must compare coordinates ONLY (as projectArtifact may not have file, and Artifact.equals factors it in)
-        // BUT if projectArtifact has file set, use that one
-        if (ArtifactIdUtils.equalsId(pomArtifact, projectArtifact)) {
-            if (isFile(projectArtifact.getFile())) {
-                pomArtifact = projectArtifact;
-            }
-            projectArtifact = null;
-        }
-
-        if (isFile(pomArtifact.getFile())) {
-            request.addArtifact(pomArtifact);
-        } else {
-            throw new MojoExecutionException(
-                    "The POM for project " + project.getArtifactId() + " could not be attached");
-        }
-
-        // is not packaged, is "incomplete"
-        boolean isIncomplete = projectArtifact != null && !isFile(projectArtifact.getFile());
-        if (projectArtifact != null) {
-            if (!isIncomplete) {
-                request.addArtifact(projectArtifact);
-            } else if (!project.getAttachedArtifacts().isEmpty()) {
-                if (allowIncompleteProjects) {
-                    getLog().warn("");
-                    getLog().warn("The packaging plugin for project " + project.getArtifactId() + " did not assign");
-                    getLog().warn("a main file to the project but it has attachments. Change packaging to 'pom'.");
-                    getLog().warn("");
-                    getLog().warn("Incomplete projects like this will fail in future Maven versions!");
-                    getLog().warn("");
-                } else {
-                    throw new MojoExecutionException("The packaging plugin for project " + project.getArtifactId()
-                            + " did not assign a main file to the project but it has attachments. Change packaging"
-                            + " to 'pom'.");
-                }
-            } else {
-                throw new MojoExecutionException("The packaging plugin for project " + project.getArtifactId()
-                        + " did not assign a file to the build artifact");
-            }
-        }
-
-        for (org.apache.maven.artifact.Artifact attached : project.getAttachedArtifacts()) {
-            getLog().debug("Attaching for deploy: " + attached.getId());
-            request.addArtifact(RepositoryUtils.toArtifact(attached));
-        }
-    }
-
-    private boolean isFile(File file) {
-        return file != null && file.isFile();
-    }
-
     /**
      * Visible for testing.
      */
-    RemoteRepository getDeploymentRepository(
+    protected RemoteRepository getDeploymentRepository(
             final MavenProject project,
             final String altSnapshotDeploymentRepository,
             final String altReleaseDeploymentRepository,
             final String altDeploymentRepository)
             throws MojoExecutionException {
-        RemoteRepository repo = null;
+        return super.getDeploymentRepository(
+                project, altSnapshotDeploymentRepository, altReleaseDeploymentRepository, altDeploymentRepository);
+    }
 
-        String altDeploymentRepo;
-        if (ArtifactUtils.isSnapshot(project.getVersion()) && altSnapshotDeploymentRepository != null) {
-            altDeploymentRepo = altSnapshotDeploymentRepository;
-        } else if (!ArtifactUtils.isSnapshot(project.getVersion()) && altReleaseDeploymentRepository != null) {
-            altDeploymentRepo = altReleaseDeploymentRepository;
-        } else {
-            altDeploymentRepo = altDeploymentRepository;
-        }
-
-        if (altDeploymentRepo != null) {
-            getLog().info("Using alternate deployment repository " + altDeploymentRepo);
-
-            Matcher matcher = ALT_LEGACY_REPO_SYNTAX_PATTERN.matcher(altDeploymentRepo);
-
-            if (matcher.matches()) {
-                String id = matcher.group(1).trim();
-                String layout = matcher.group(2).trim();
-                String url = matcher.group(3).trim();
-
-                if ("default".equals(layout)) {
-                    getLog().warn("Using legacy syntax for alternative repository. " + "Use \"" + id + "::" + url
-                            + "\" instead.");
-                    repo = getRemoteRepository(id, url);
-                } else {
-                    throw new MojoExecutionException("Invalid legacy syntax and layout for alternative repository: \""
-                            + altDeploymentRepo + "\". Use \"" + id + "::" + url
-                            + "\" instead, and only default layout is supported.");
-                }
-            } else {
-                matcher = ALT_REPO_SYNTAX_PATTERN.matcher(altDeploymentRepo);
-
-                if (!matcher.matches()) {
-                    throw new MojoExecutionException("Invalid syntax for alternative repository: \"" + altDeploymentRepo
-                            + "\". Use \"id::url\".");
-                } else {
-                    String id = matcher.group(1).trim();
-                    String url = matcher.group(2).trim();
-
-                    repo = getRemoteRepository(id, url);
-                }
-            }
-        }
-
-        if (repo == null) {
-            repo = RepositoryUtils.toRepo(project.getDistributionManagementArtifactRepository());
-        }
-
-        if (repo == null) {
-            String msg = "Deployment failed: repository element was not specified in the POM inside"
-                    + " distributionManagement element or in -DaltDeploymentRepository=id::url parameter";
-
-            throw new MojoExecutionException(msg);
-        }
-
-        return repo;
+    private enum State {
+        SKIPPED,
+        TO_BE_DEPLOYED,
+        DEPLOYED
     }
 }
