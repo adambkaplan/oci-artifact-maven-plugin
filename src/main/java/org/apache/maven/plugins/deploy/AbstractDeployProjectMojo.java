@@ -21,11 +21,8 @@ package org.apache.maven.plugins.deploy;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.artifact.ArtifactUtils;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -39,9 +36,6 @@ import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 public abstract class AbstractDeployProjectMojo extends AbstractDeployMojo {
 
-    private static final Pattern ALT_LEGACY_REPO_SYNTAX_PATTERN = Pattern.compile("(.+?)::(.+?)::(.+)");
-    private static final Pattern ALT_REPO_SYNTAX_PATTERN = Pattern.compile("(.+?)::(.+)");
-
     /**
      * Set this to <code>true</code> to allow incomplete project processing. By default, such projects are forbidden
      * and Mojo will fail to process them. Incomplete project is a Maven Project that has any other packaging than
@@ -54,12 +48,37 @@ public abstract class AbstractDeployProjectMojo extends AbstractDeployMojo {
     @Parameter(defaultValue = "false", property = "allowIncompleteProjects")
     private boolean allowIncompleteProjects;
 
+    /**
+     * Set this to 'true' to bypass artifact deploy
+     * Since since 3.0.0-M2 it's not anymore a real boolean as it can have more than 2 values:
+     * <ul>
+     *     <li><code>true</code>: will skip as usual</li>
+     *     <li><code>releases</code>: will skip if current version of the project is a release</li>
+     *     <li><code>snapshots</code>: will skip if current version of the project is a snapshot</li>
+     *     <li>any other values will be considered as <code>false</code></li>
+     * </ul>
+     * @since 2.4
+     */
+    @Parameter(property = "maven.deploy.skip", defaultValue = "false")
+    private String skip = Boolean.FALSE.toString();
+
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
+    private MavenProject project;
+
     public boolean isAllowIncompleteProjects() {
         return this.allowIncompleteProjects;
     }
 
     boolean isFile(File file) {
         return file != null && file.isFile();
+    }
+
+    protected String getSkip() {
+        return this.skip;
+    }
+
+    protected MavenProject getProject() {
+        return this.project;
     }
 
     void processProject(final MavenProject project, DeployRequest request) throws MojoExecutionException {
@@ -119,101 +138,6 @@ public abstract class AbstractDeployProjectMojo extends AbstractDeployMojo {
     }
 
     /**
-     * Creates resolver {@link RemoteRepository} equipped with needed whistles and bells.
-     */
-    protected RemoteRepository getRemoteRepository(final String repositoryId, final String url) {
-        // TODO: RepositorySystem#newDeploymentRepository does this very same thing!
-        RemoteRepository result = new RemoteRepository.Builder(repositoryId, "default", url).build();
-
-        if (result.getAuthentication() == null || result.getProxy() == null) {
-            RemoteRepository.Builder builder = new RemoteRepository.Builder(result);
-
-            if (result.getAuthentication() == null) {
-                builder.setAuthentication(session.getRepositorySession()
-                        .getAuthenticationSelector()
-                        .getAuthentication(result));
-            }
-
-            if (result.getProxy() == null) {
-                builder.setProxy(
-                        session.getRepositorySession().getProxySelector().getProxy(result));
-            }
-
-            result = builder.build();
-        }
-
-        return result;
-    }
-
-    /**
-     * Gets the deployment repository for a project, considering alternative repositories.
-     */
-    protected RemoteRepository getDeploymentRepository(
-            final MavenProject project,
-            final String altSnapshotDeploymentRepository,
-            final String altReleaseDeploymentRepository,
-            final String altDeploymentRepository)
-            throws MojoExecutionException {
-        RemoteRepository repo = null;
-
-        String altDeploymentRepo;
-        if (ArtifactUtils.isSnapshot(project.getVersion()) && altSnapshotDeploymentRepository != null) {
-            altDeploymentRepo = altSnapshotDeploymentRepository;
-        } else if (!ArtifactUtils.isSnapshot(project.getVersion()) && altReleaseDeploymentRepository != null) {
-            altDeploymentRepo = altReleaseDeploymentRepository;
-        } else {
-            altDeploymentRepo = altDeploymentRepository;
-        }
-
-        if (altDeploymentRepo != null) {
-            getLog().info("Using alternate deployment repository " + altDeploymentRepo);
-
-            Matcher matcher = ALT_LEGACY_REPO_SYNTAX_PATTERN.matcher(altDeploymentRepo);
-
-            if (matcher.matches()) {
-                String id = matcher.group(1).trim();
-                String layout = matcher.group(2).trim();
-                String url = matcher.group(3).trim();
-
-                if ("default".equals(layout)) {
-                    getLog().warn("Using legacy syntax for alternative repository. " + "Use \"" + id + "::" + url
-                            + "\" instead.");
-                    repo = getRemoteRepository(id, url);
-                } else {
-                    throw new MojoExecutionException("Invalid legacy syntax and layout for alternative repository: \""
-                            + altDeploymentRepo + "\". Use \"" + id + "::" + url
-                            + "\" instead, and only default layout is supported.");
-                }
-            } else {
-                matcher = ALT_REPO_SYNTAX_PATTERN.matcher(altDeploymentRepo);
-
-                if (!matcher.matches()) {
-                    throw new MojoExecutionException("Invalid syntax for alternative repository: \"" + altDeploymentRepo
-                            + "\". Use \"id::url\".");
-                } else {
-                    String id = matcher.group(1).trim();
-                    String url = matcher.group(2).trim();
-
-                    repo = getRemoteRepository(id, url);
-                }
-            }
-        }
-
-        if (repo == null) {
-            repo = RepositoryUtils.toRepo(project.getDistributionManagementArtifactRepository());
-        }
-
-        if (repo == null) {
-            String msg = "Deployment failed: repository element was not specified in the POM inside"
-                    + " distributionManagement element or in -DaltDeploymentRepository=id::url parameter";
-
-            throw new MojoExecutionException(msg);
-        }
-
-        return repo;
-    }
-
-    /**
      * Gets all projects that use this plugin from the reactor.
      */
     protected List<MavenProject> getAllProjectsUsingPlugin(
@@ -243,4 +167,6 @@ public abstract class AbstractDeployProjectMojo extends AbstractDeployMojo {
         }
         return false;
     }
+
+    protected abstract RemoteRepository getDeploymentRepository() throws MojoExecutionException;
 }

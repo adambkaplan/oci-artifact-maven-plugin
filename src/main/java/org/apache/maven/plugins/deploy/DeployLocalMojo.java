@@ -46,8 +46,6 @@ import org.eclipse.aether.repository.RemoteRepository;
  */
 @Mojo(name = "deploy-local", defaultPhase = LifecyclePhase.DEPLOY, threadSafe = true)
 public class DeployLocalMojo extends AbstractDeployProjectMojo {
-    @Parameter(defaultValue = "${project}", readonly = true, required = true)
-    private MavenProject project;
 
     @Parameter(defaultValue = "${reactorProjects}", required = true, readonly = true)
     private List<MavenProject> reactorProjects;
@@ -70,20 +68,6 @@ public class DeployLocalMojo extends AbstractDeployProjectMojo {
     @Parameter(property = "deployLocalDirectory", defaultValue = "${project.build.directory}/deploy-local")
     private File deployLocalDirectory;
 
-    /**
-     * Set this to 'true' to bypass artifact deploy
-     * Since since 3.0.0-M2 it's not anymore a real boolean as it can have more than 2 values:
-     * <ul>
-     *     <li><code>true</code>: will skip as usual</li>
-     *     <li><code>releases</code>: will skip if current version of the project is a release</li>
-     *     <li><code>snapshots</code>: will skip if current version of the project is a snapshot</li>
-     *     <li>any other values will be considered as <code>false</code></li>
-     * </ul>
-     * @since 2.4
-     */
-    @Parameter(property = "maven.deploy.skip", defaultValue = "false")
-    private String skip = Boolean.FALSE.toString();
-
     private static final String DEPLOY_PROCESSED_MARKER = DeployLocalMojo.class.getName() + ".processed";
 
     private void putState(State state) {
@@ -102,18 +86,20 @@ public class DeployLocalMojo extends AbstractDeployProjectMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         State state;
-        if (Boolean.parseBoolean(skip)
-                || ("releases".equals(skip) && !ArtifactUtils.isSnapshot(project.getVersion()))
-                || ("snapshots".equals(skip) && ArtifactUtils.isSnapshot(project.getVersion()))) {
+        if (Boolean.parseBoolean(getSkip())
+                || ("releases".equals(getSkip())
+                        && !ArtifactUtils.isSnapshot(getProject().getVersion()))
+                || ("snapshots".equals(getSkip())
+                        && ArtifactUtils.isSnapshot(getProject().getVersion()))) {
             getLog().info("Skipping artifact deployment");
             state = State.SKIPPED;
         } else {
-            warnIfAffectedPackagingAndMaven(project.getPackaging());
+            warnIfAffectedPackagingAndMaven(getProject().getPackaging());
 
             if (!deployAtEnd) {
                 DeployRequest request = new DeployRequest();
-                request.setRepository(createLocalRepository());
-                processProject(project, request);
+                request.setRepository(getDeploymentRepository());
+                processProject(getProject(), request);
                 deployLocal(request);
                 state = State.DEPLOYED;
             } else {
@@ -128,14 +114,14 @@ public class DeployLocalMojo extends AbstractDeployProjectMojo {
         if (allProjectsMarked(allProjectsUsingPlugin)) {
             deployAllAtOnce(allProjectsUsingPlugin);
         } else if (state == State.TO_BE_DEPLOYED) {
-            getLog().info("Deferring deploy for " + project.getGroupId() + ":" + project.getArtifactId() + ":"
-                    + project.getVersion() + " at end");
+            getLog().info("Deferring deploy for " + getProject().getGroupId() + ":"
+                    + getProject().getArtifactId() + ":" + getProject().getVersion() + " at end");
         }
     }
 
     private void deployAllAtOnce(List<MavenProject> allProjectsUsingPlugin) throws MojoExecutionException {
         DeployRequest request = new DeployRequest();
-        request.setRepository(createLocalRepository());
+        request.setRepository(getDeploymentRepository());
 
         // collect all artifacts from all modules to deploy
         for (MavenProject reactorProject : allProjectsUsingPlugin) {
@@ -157,6 +143,11 @@ public class DeployLocalMojo extends AbstractDeployProjectMojo {
             }
         }
         return true;
+    }
+
+    @Override
+    protected RemoteRepository getDeploymentRepository() throws MojoExecutionException {
+        return createLocalRepository();
     }
 
     /**

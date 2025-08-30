@@ -702,7 +702,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         assertEquals(
                 new RemoteRepository.Builder("altDeploymentRepository", "default", "http://localhost").build(),
-                mojo.getDeploymentRepository(
+                mojo.getDeploymentRepositoryWithAlts(
                         project, null, null, "altDeploymentRepository::default::http://localhost"));
     }
 
@@ -716,7 +716,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         project.setVersion("1.0-SNAPSHOT");
         try {
-            mojo.getDeploymentRepository(project, null, null, altDeploymentRepository);
+            mojo.getDeploymentRepositoryWithAlts(project, null, null, altDeploymentRepository);
             fail("Should throw: Invalid legacy syntax and layout for repository.");
         } catch (MojoExecutionException e) {
             assertEquals(
@@ -736,7 +736,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         project.setVersion("1.0-SNAPSHOT");
         try {
-            mojo.getDeploymentRepository(project, null, null, altDeploymentRepository);
+            mojo.getDeploymentRepositoryWithAlts(project, null, null, altDeploymentRepository);
             fail("Should throw: Invalid legacy syntax and layout for repository.");
         } catch (MojoExecutionException e) {
             assertEquals(
@@ -758,7 +758,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         assertEquals(
                 new RemoteRepository.Builder("altDeploymentRepository", "default", "scm:svn:http://localhost").build(),
-                mojo.getDeploymentRepository(
+                mojo.getDeploymentRepositoryWithAlts(
                         project, null, null, "altDeploymentRepository::default::scm:svn:http://localhost"));
     }
 
@@ -771,7 +771,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         project.setVersion("1.0-SNAPSHOT");
         try {
-            mojo.getDeploymentRepository(project, null, null, altDeploymentRepository);
+            mojo.getDeploymentRepositoryWithAlts(project, null, null, altDeploymentRepository);
             fail("Should throw: Invalid legacy syntax and layout for repository.");
         } catch (MojoExecutionException e) {
             assertEquals(
@@ -793,7 +793,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         assertEquals(
                 new RemoteRepository.Builder("altSnapshotDeploymentRepository", "default", "http://localhost").build(),
-                mojo.getDeploymentRepository(project, "altSnapshotDeploymentRepository::http://localhost", null, null));
+                mojo.getDeploymentRepositoryWithAlts(
+                        project, "altSnapshotDeploymentRepository::http://localhost", null, null));
     }
 
     public void testAltReleaseDeploymentRepository() throws Exception {
@@ -808,7 +809,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         assertEquals(
                 new RemoteRepository.Builder("altReleaseDeploymentRepository", "default", "http://localhost").build(),
-                mojo.getDeploymentRepository(project, null, "altReleaseDeploymentRepository::http://localhost", null));
+                mojo.getDeploymentRepositoryWithAlts(
+                        project, null, "altReleaseDeploymentRepository::http://localhost", null));
     }
 
     private void addFileToList(File file, List<String> fileList) {
