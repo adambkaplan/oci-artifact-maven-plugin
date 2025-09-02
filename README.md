@@ -25,7 +25,14 @@
 
 ## Overview
 
-The OCI Artifact Maven Plugin enables Maven projects to resolve and deploy artifacts using Open Container Initiative (OCI) images. This plugin bridges the gap between traditional Maven artifact repositories and modern container registries, allowing developers to leverage OCI-compliant registries for storing and retrieving Maven artifacts.
+The OCI Artifact Maven Plugin enables Maven projects to resolve and deploy artifacts using Open
+Container Initiative (OCI) images. This plugin bridges the gap between traditional Maven artifact
+repositories and modern container registries, allowing developers to leverage OCI-compliant
+registries for storing and retrieving Maven artifacts.
+
+**Note: this is a hard fork of the official [Maven Deploy Plugin](https://github.com/apache/maven-deploy-plugin/tree/maven-deploy-plugin-3.1.4)**
+**This codebase owes a large debt of gratitude to the Apache Maven maintainers who developed the**
+**Maven repository ecosystem.**
 
 ## Features
 
