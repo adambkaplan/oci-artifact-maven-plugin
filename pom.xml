@@ -27,13 +27,12 @@ under the License.
     <relativePath />
   </parent>
 
-  <groupId>org.opencontainers.maven.plugins</groupId>
-  <artifactId>oci-artifact-maven-plugin</artifactId>
+  <artifactId>maven-deploy-plugin</artifactId>
   <version>3.1.4</version>
   <packaging>maven-plugin</packaging>
 
-  <name>OCI Artifact Maven Plugin</name>
-  <description>Resolve and deploy Maven artifacts using Open Container Initiative (OCI) images.</description>
+  <name>Apache Maven Deploy Plugin</name>
+  <description>Uploads the project artifacts to the internal remote repository.</description>
   <inceptionYear>2004</inceptionYear>
 
   <contributors>

@@ -73,8 +73,7 @@ under the License.
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.opencontainers.maven.plugins</groupId>
-        <artifactId>oci-artifact-maven-plugin</artifactId>
+        <artifactId>maven-deploy-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
           <!-- Deployments will be written to ${basedir}/target -->

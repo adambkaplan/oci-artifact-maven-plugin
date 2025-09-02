@@ -22,8 +22,7 @@ under the License.
   <build>
     <plugins>
       <plugin>
-        <groupId>org.opencontainers.maven.plugins</groupId>
-        <artifactId>oci-artifact-maven-plugin</artifactId>
+        <artifactId>maven-deploy-plugin</artifactId>
         <configuration>
           <project implementation="org.apache.maven.plugin.testing.stubs.MavenProjectStub">
             <file>${basedir}/src/test/resources/unit/basic-deploy-local-test/plugin-config.xml</file>
