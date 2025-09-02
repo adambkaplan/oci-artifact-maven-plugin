@@ -19,7 +19,8 @@ under the License.
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <groupId>org.opencontainers.maven.plugins</groupId>
+                <artifactId>oci-artifact-maven-plugin</artifactId>
                 <configuration>
                     <groupId>org.apache.maven.test</groupId>
                     <artifactId>maven-deploy-file-test</artifactId>

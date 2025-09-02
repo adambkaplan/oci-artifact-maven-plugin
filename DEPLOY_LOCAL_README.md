@@ -17,11 +17,11 @@
  * under the License.
  */
 
-# Maven Deploy Plugin - Deploy Local Goal
+# OCI Artifact Maven Plugin - Deploy Local Goal
 
 ## Overview
 
-The `deploy-local` goal is a new addition to the Maven Deploy Plugin that allows you to deploy Maven artifacts to a local directory as if it were a remote Maven repository. This is useful for:
+The `deploy-local` goal is a new addition to the OCI Artifact Maven Plugin that allows you to deploy Maven artifacts to a local directory as if it were a remote Maven repository. This is useful for:
 
 - Testing deployment configurations locally
 - Creating local repositories for development
@@ -50,9 +50,9 @@ mvn deploy:deploy-local -DdeployLocalDirectory=/path/to/local/repo
 
 ```xml
 <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-deploy-plugin</artifactId>
-    <version>3.1.1</version>
+    <groupId>org.opencontainers.maven.plugins</groupId>
+    <artifactId>oci-artifact-maven-plugin</artifactId>
+    <version>3.1.4</version>
     <configuration>
         <deployLocalDirectory>${project.build.directory}/local-repo</deployLocalDirectory>
     </configuration>
@@ -151,7 +151,7 @@ The goal includes comprehensive tests that verify:
 
 - **Maven Version**: 3.0+
 - **Java Version**: 8+
-- **Plugin Version**: 3.1.1+
+- **Plugin Version**: 3.1.4+
 
 ## Migration from Deploy Goal
 

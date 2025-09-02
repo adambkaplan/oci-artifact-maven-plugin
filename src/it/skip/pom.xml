@@ -45,8 +45,8 @@ under the License.
         <version>@mavenCompilerPluginVersion@</version>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-deploy-plugin</artifactId>
+        <groupId>org.opencontainers.maven.plugins</groupId>
+        <artifactId>oci-artifact-maven-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
           <skip>true</skip>
