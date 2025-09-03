@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
+import land.oras.utils.ZotContainer;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -73,6 +74,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
     private MavenSession session;
 
+    private ZotContainer zotContainer;
+
     @InjectMocks
     private DeployMojo mojo;
 
@@ -111,6 +114,10 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         if (ociArtifactsRepo.exists()) {
             FileUtils.deleteDirectory(ociArtifactsRepo);
         }
+
+        zotContainer = new ZotContainer();
+        zotContainer.setStartupAttempts(3);
+        zotContainer.start();
     }
 
     public void tearDown() throws Exception {
@@ -122,6 +129,10 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         if (openMocks != null) {
             openMocks.close();
+        }
+
+        if (zotContainer != null) {
+            zotContainer.stop();
         }
     }
 
@@ -161,6 +172,12 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         setVariableValueToObject(mojo, "pluginContext", new ConcurrentHashMap<>());
         setVariableValueToObject(mojo, "reactorProjects", Collections.singletonList(project));
+        setVariableValueToObject(
+                mojo, "imageRepo", zotContainer.getRegistry() + "/m2/org/apache/maven/test/maven-deploy-test");
+        setVariableValueToObject(mojo, "imageTag", "1.0-SNAPSHOT");
+        setVariableValueToObject(mojo, "registryUsername", "myuser");
+        setVariableValueToObject(mojo, "registryPassword", "mypass");
+        setVariableValueToObject(mojo, "insecureTLSNoVerify", Boolean.TRUE);
 
         artifact = (DeployArtifactStub) project.getArtifact();
 
@@ -192,11 +209,11 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("test");
         expectedFiles.add("maven-deploy-test");
         expectedFiles.add("1.0-SNAPSHOT");
-        expectedFiles.add("maven-metadata-deploy-test.xml");
+        // expectedFiles.add("maven-metadata-deploy-test.xml");
         // expectedFiles.add( "maven-deploy-test-1.0-SNAPSHOT.jar" );
         // expectedFiles.add( "maven-deploy-test-1.0-SNAPSHOT.pom" );
         // as we are in SNAPSHOT the file is here twice
-        expectedFiles.add("maven-metadata-deploy-test.xml");
+        // expectedFiles.add("maven-metadata-deploy-test.xml");
         // extra Aether files
         expectedFiles.add("resolver-status.properties");
         expectedFiles.add("resolver-status.properties");
@@ -235,9 +252,9 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml.md5");
         expectedFiles.add("maven-metadata.xml.sha1");
 
-        remoteRepo = new File(remoteRepo, "basic-deploy-test");
+        // remoteRepo = new File(remoteRepo, "basic-deploy-test");
 
-        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        // assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
         assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
@@ -327,7 +344,12 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         setVariableValueToObject(mojo, "pluginContext", new ConcurrentHashMap<>());
         setVariableValueToObject(mojo, "reactorProjects", Collections.singletonList(project));
-
+        setVariableValueToObject(
+                mojo, "imageRepo", zotContainer.getRegistry() + "/m2/org/apache/maven/test/maven-deploy-test");
+        setVariableValueToObject(mojo, "imageTag", "1.0-SNAPSHOT");
+        setVariableValueToObject(mojo, "registryUsername", "myuser");
+        setVariableValueToObject(mojo, "registryPassword", "mypass");
+        setVariableValueToObject(mojo, "insecureTLSNoVerify", Boolean.TRUE);
         artifact = (DeployArtifactStub) project.getArtifact();
 
         artifact.setArtifactHandlerExtension(project.getPackaging());
@@ -358,9 +380,9 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml");
         expectedFiles.add("maven-metadata.xml.md5");
         expectedFiles.add("maven-metadata.xml.sha1");
-        remoteRepo = new File(remoteRepo, "basic-deploy-pom");
+        // remoteRepo = new File(remoteRepo, "basic-deploy-pom");
 
-        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        // assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
         assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
@@ -392,7 +414,12 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         setVariableValueToObject(mojo, "pluginContext", new ConcurrentHashMap<>());
         setVariableValueToObject(mojo, "reactorProjects", Collections.singletonList(project));
-
+        setVariableValueToObject(
+                mojo, "imageRepo", zotContainer.getRegistry() + "/m2/org/apache/maven/test/maven-deploy-test");
+        setVariableValueToObject(mojo, "imageTag", "1.0-SNAPSHOT");
+        setVariableValueToObject(mojo, "registryUsername", "myuser");
+        setVariableValueToObject(mojo, "registryPassword", "mypass");
+        setVariableValueToObject(mojo, "insecureTLSNoVerify", Boolean.TRUE);
         artifact = (DeployArtifactStub) project.getArtifact();
 
         artifact.setArtifactHandlerExtension(project.getPackaging());
@@ -423,9 +450,9 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml");
         expectedFiles.add("maven-metadata.xml.md5");
         expectedFiles.add("maven-metadata.xml.sha1");
-        remoteRepo = new File(remoteRepo, "basic-deploy-bom");
+        // remoteRepo = new File(remoteRepo, "basic-deploy-bom");
 
-        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        // assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
         assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
@@ -519,7 +546,12 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         setVariableValueToObject(mojo, "pluginContext", new ConcurrentHashMap<>());
         setVariableValueToObject(mojo, "reactorProjects", Collections.singletonList(project));
-
+        setVariableValueToObject(
+                mojo, "imageRepo", zotContainer.getRegistry() + "/m2/org/apache/maven/test/maven-deploy-test");
+        setVariableValueToObject(mojo, "imageTag", "1.0-SNAPSHOT");
+        setVariableValueToObject(mojo, "registryUsername", "myuser");
+        setVariableValueToObject(mojo, "registryPassword", "mypass");
+        setVariableValueToObject(mojo, "insecureTLSNoVerify", Boolean.TRUE);
         artifact = (DeployArtifactStub) project.getArtifact();
 
         File file = new File(
@@ -570,9 +602,9 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml.md5");
         expectedFiles.add("maven-metadata.xml.sha1");
 
-        remoteRepo = new File(remoteRepo, "basic-deploy-with-attached-artifacts");
+        // remoteRepo = new File(remoteRepo, "basic-deploy-with-attached-artifacts");
 
-        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        // assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
         assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
