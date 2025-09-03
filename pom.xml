@@ -27,13 +27,14 @@ under the License.
     <relativePath />
   </parent>
 
-  <artifactId>maven-deploy-plugin</artifactId>
-  <version>3.1.4</version>
+  <groupId>org.opencontainers.maven.plugins</groupId>
+  <artifactId>oci-artifact-maven-plugin</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
-  <name>Apache Maven Deploy Plugin</name>
-  <description>Uploads the project artifacts to the internal remote repository.</description>
-  <inceptionYear>2004</inceptionYear>
+  <name>OCI Artifact Maven Plugin</name>
+  <description>Uploads the project artifacts to an OCI container registry.</description>
+  <inceptionYear>2025</inceptionYear>
 
   <contributors>
     <!-- alphabetic order -->
@@ -77,6 +78,7 @@ under the License.
 
     <!-- plugins version used in IT tests -->
     <mavenAntrunPluginVersion>${version.maven-antrun-plugin}</mavenAntrunPluginVersion>
+    <mavenDeployPluginVersion>${version.maven-deploy-plugin}</mavenDeployPluginVersion>
     <mavenCompilerPluginVersion>${version.maven-compiler-plugin}</mavenCompilerPluginVersion>
     <mavenEnforcerPluginVersion>${version.maven-enforcer-plugin}</mavenEnforcerPluginVersion>
     <mavenInstallPluginVersion>${version.maven-install-plugin}</mavenInstallPluginVersion>

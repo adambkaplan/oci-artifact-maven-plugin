@@ -52,11 +52,26 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
+        <version>@mavenDeployPluginVersion@</version>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.opencontainers.maven.plugins</groupId>
+        <artifactId>oci-artifact-maven-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
           <deployAtEnd>true</deployAtEnd>
           <skip>true</skip>
         </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>deploy</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
