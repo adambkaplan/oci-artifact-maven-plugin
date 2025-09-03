@@ -1,0 +1,38 @@
+<!-->
+Copyright 2025 The OCI Artifact Maven Plugin Contributors
+
+SPDX-License-Identifier: Apache-2.0
+<-->
+---
+description: Apply License Headers
+globs:
+alwaysApply: true
+---
+
+When Cursor creates a new source file, it must add an appropriate license header to the file. The
+license header must be in the form of the comment at (or near) the first line of the file, using
+comment syntax that is appropriate for the source file's programming or markup language.
+
+The license header should have the copyright year and "The OCI Artifact Maven Plugin Contributors"
+as the copyright owner. The license is identified usig `SPDX-License-Identifier:`. The license for
+this project is `Apache-2.0`.
+
+For example, here is an appropriate header for a Java source file:
+
+```java
+/** 
+Copyright 2025 The OCI Artifact Maven Plugin Contributors
+
+SPDX-License-Identifier: Apache-2.0
+**/
+```
+
+And here is an appropriate header for an XML source file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-->
+Copyright 2025 The OCI Artifact Maven Plugin Contributors
+
+SPDX-License-Identifier: Apache-2.0
+<-->
