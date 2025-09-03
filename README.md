@@ -20,6 +20,25 @@ A Maven plugin for deploying and resolving Maven artifacts from OCI container re
 
 **This originates as a hard fork of the [Apache Maven Deploy Plugin](https://maven.apache.org/plugins/maven-deploy-plugin/)**
 
+## Usage
+
+Add the following to your Maven project's `pom.xml`:
+
+```xml
+<plugins>
+  <plugin>
+    <groupId>org.opencontainers.maven.plugins</groupId>
+    <artifactId>oci-artifact-maven-plugin</artifactId>
+    <executions>
+      <execution>
+        <goals>
+          <goal>deploy</goal>
+        </goals>
+      </execution>
+    </executions>
+  </plugin>
+</plugins>
+```
 
 ## Contributing to OCI Artifact Maven Plugin
 
