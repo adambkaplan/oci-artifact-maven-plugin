@@ -1,0 +1,16 @@
+<!-->
+Copyright 2025 The OCI Artifact Maven Plugin Contributors
+
+SPDX-License-Identifier: Apache-2.0
+<-->
+---
+description: Run Integration Tests for Java Changes
+globs: *.java,**/pom.xml
+alwaysApply: false
+---
+After Cursor changes one or more Java files in this project, run the following command
+to ensure the integration tests succeed:
+
+```sh
+mvn -Prun-its clean verify
+```
