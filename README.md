@@ -41,25 +41,12 @@ things.
 ### Getting Started
 
 - Make sure you have a [GitHub account](https://github.com/signup/free).
-<!--
-+ If you're planning to implement a new feature, it makes sense to discuss your changes 
-  on the [dev list][ml-list]] first. 
-  This way you can make sure you're not wasting your time on something that isn't 
-  considered to be in Apache Maven's scope.
-+ Submit a ticket for your issue, assuming one does not already exist.
-  + Clearly describe the issue, including steps to reproduce when it is a bug.
-  + Make sure you fill in the earliest version that you know has the issue.
--->
 - Fork the repository on GitHub.
 
 ### Making and Submitting Changes
 
 We accept Pull Requests via GitHub.
 
-<!--
-The [developer mailing list][ml-list] is the
-main channel of communication for contributors.
--->
 There are some guidelines which will make applying PRs easier for us:
 
 - Create a topic branch from where you want to base your work (this is usually the main branch).
@@ -75,20 +62,14 @@ There are some guidelines which will make applying PRs easier for us:
 - Run all the tests with `mvn -Prun-its verify` to assure nothing else was accidentally broken.
 - Submit a pull request to the repository in this organization.
 
-<!-- If you plan to contribute on a regular basis, please consider filing a [contributor license agreement][cla]. -->
-
 ### Additional Resources
 
-+ [Contributing patches](https://maven.apache.org/guides/development/guide-maven-development.html#Creating_and_submitting_a_patch)
-+ [Contributor License Agreement][cla]
-+ [General GitHub documentation](https://help.github.com/)
-+ [GitHub pull request documentation](https://help.github.com/send-pull-requests/)
-+ [Apache Maven Twitter Account](https://twitter.com/ASFMavenProject)
+- [Contributing patches](https://maven.apache.org/guides/development/guide-maven-development.html#Creating_and_submitting_a_patch)
+- [General GitHub documentation](https://help.github.com/)
+- [GitHub pull request documentation](https://help.github.com/send-pull-requests/)
 
 [license]: https://www.apache.org/licenses/LICENSE-2.0
-[ml-list]: https://maven.apache.org/mailing-lists.html
 [code-style]: https://maven.apache.org/developers/conventions/code.html
-[cla]: https://www.apache.org/licenses/#clas
 [maven-wiki]: https://cwiki.apache.org/confluence/display/MAVEN/Index
 [test-results]: https://ci-maven.apache.org/job/Maven/job/maven-box/job/maven-deploy-plugin/job/master/lastCompletedBuild/testReport/
 [build]: https://ci-maven.apache.org/job/Maven/job/maven-box/job/maven-deploy-plugin/job/master/
