@@ -129,6 +129,14 @@ public abstract class AbstractDeployMojo extends AbstractMojo {
     // next try can fail due to duplicate.
 
     protected void deploy(DeployRequest deployRequest) throws MojoExecutionException {
+        deployRemotely(deployRequest);
+        deployLocally(deployRequest);
+    }
+
+    /**
+     * Deploy the artifacts to the remote repository, with built in retries.
+     */
+    private void deployRemotely(DeployRequest deployRequest) throws MojoExecutionException {
         int retryFailedDeploymentCounter = Math.max(1, Math.min(10, retryFailedDeploymentCount));
         DeploymentException exception = null;
         for (int count = 0; count < retryFailedDeploymentCounter; count++) {
@@ -152,6 +160,24 @@ public abstract class AbstractDeployMojo extends AbstractMojo {
         }
         if (exception != null) {
             throw new MojoExecutionException(exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * Deploy the artifacts to the local build target directory.
+     */
+    private void deployLocally(DeployRequest deployRequest) throws MojoExecutionException {
+        DeployRequest deployRequestCopy = new DeployRequest();
+        deployRequestCopy.setArtifacts(deployRequest.getArtifacts());
+        deployRequestCopy.setMetadata(deployRequest.getMetadata());
+        deployRequestCopy.setTrace(deployRequest.getTrace());
+
+        deployRequestCopy.setRepository(getRemoteRepository(
+                "build-target", "file://" + session.getExecutionRootDirectory() + "/target/oci-artifacts"));
+        try {
+            repositorySystem.deploy(session.getRepositorySession(), deployRequestCopy);
+        } catch (DeploymentException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 }

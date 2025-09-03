@@ -57,9 +57,13 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
     private File localRepo;
 
+    private File ociArtifactsRepo;
+
     private final String LOCAL_REPO = getBasedir() + "/target/local-repo";
 
     private final String REMOTE_REPO = getBasedir() + "/target/remote-repo";
+
+    private final String OCI_ARTIFACTS_REPO = getBasedir() + "/target/oci-artifacts";
 
     DeployArtifactStub artifact;
 
@@ -83,6 +87,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
                 new SimpleLocalRepositoryManagerFactory(new DefaultLocalPathComposer())
                         .newInstance(repositorySession, new LocalRepository(LOCAL_REPO)));
         when(session.getRepositorySession()).thenReturn(repositorySession);
+        when(session.getExecutionRootDirectory()).thenReturn(getBasedir());
 
         remoteRepo = new File(REMOTE_REPO);
 
@@ -96,6 +101,15 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         if (remoteRepo.exists()) {
             FileUtils.deleteDirectory(remoteRepo);
+        }
+
+        // This "repository" is managed by the plugin itself
+        ociArtifactsRepo = new File(OCI_ARTIFACTS_REPO);
+
+        ociArtifactsRepo.mkdirs();
+
+        if (ociArtifactsRepo.exists()) {
+            FileUtils.deleteDirectory(ociArtifactsRepo);
         }
     }
 
@@ -126,7 +140,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         openMocks = MockitoAnnotations.openMocks(this);
 
-        assertNotNull(mojo);
+        assertNotNull("mojo should not be null", mojo);
 
         DefaultRepositorySystemSession repositorySession = new DefaultRepositorySystemSession();
         repositorySession.setLocalRepositoryManager(
@@ -138,7 +152,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
                 getBasedir(),
                 "target/test-classes/unit/basic-deploy-test/target/" + "deploy-test-file-1.0-SNAPSHOT.jar");
 
-        assertTrue(file.exists());
+        assertTrue("deploy-test-file-1.0-SNAPSHOT.jar should exist", file.exists());
 
         MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
         project.setGroupId("org.apache.maven.test");
@@ -152,13 +166,13 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         String packaging = project.getPackaging();
 
-        assertEquals("jar", packaging);
+        assertEquals("project packaging", "jar", packaging);
 
         artifact.setFile(file);
 
         ArtifactRepositoryStub repo = getRepoStub(mojo);
 
-        assertNotNull(repo);
+        assertNotNull("artifact repo stub should not be null", repo);
 
         repo.setAppendToUrl("basic-deploy-test");
 
@@ -171,7 +185,6 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         // check the artifact in local repository
         List<String> expectedFiles = new ArrayList<>();
-        List<String> fileList = new ArrayList<>();
 
         expectedFiles.add("org");
         expectedFiles.add("apache");
@@ -188,21 +201,19 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("resolver-status.properties");
         expectedFiles.add("resolver-status.properties");
 
+        // the local repository also contains metadata for the "build-target" directory
+        // used to assemble the OCI artifact. This is considered a "remote" repository
+        // even though its contents are on disk.
+        expectedFiles.add("maven-metadata-build-target.xml");
+        // as we are in SNAPSHOT the file is here twice
+        expectedFiles.add("maven-metadata-build-target.xml");
+
         File localRepo = new File(LOCAL_REPO, "");
 
-        File[] files = localRepo.listFiles();
+        assertRepoExpectedFiles(localRepo, "local", expectedFiles);
 
-        for (File file2 : Objects.requireNonNull(files)) {
-            addFileToList(file2, fileList);
-        }
-
-        assertEquals(expectedFiles.size(), fileList.size());
-
-        assertEquals(0, getSizeOfExpectedFiles(fileList, expectedFiles));
-
-        // check the artifact in remote repository
+        // check the artifact in remote repository and "oci-artifacts" repository
         expectedFiles = new ArrayList<>();
-        fileList = new ArrayList<>();
 
         expectedFiles.add("org");
         expectedFiles.add("apache");
@@ -226,15 +237,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         remoteRepo = new File(remoteRepo, "basic-deploy-test");
 
-        files = remoteRepo.listFiles();
-
-        for (File file1 : Objects.requireNonNull(files)) {
-            addFileToList(file1, fileList);
-        }
-
-        assertEquals(expectedFiles.size(), fileList.size());
-
-        assertEquals(0, getSizeOfExpectedFiles(fileList, expectedFiles));
+        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
     public void testSkippingDeploy() throws Exception {
@@ -289,7 +293,9 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         remoteRepo = new File(remoteRepo, "basic-deploy-test");
 
         files = remoteRepo.listFiles();
+        assertNull(files);
 
+        files = ociArtifactsRepo.listFiles();
         assertNull(files);
     }
 
@@ -335,7 +341,6 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         mojo.execute();
 
         List<String> expectedFiles = new ArrayList<>();
-        List<String> fileList = new ArrayList<>();
 
         expectedFiles.add("org");
         expectedFiles.add("apache");
@@ -355,15 +360,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml.sha1");
         remoteRepo = new File(remoteRepo, "basic-deploy-pom");
 
-        File[] files = remoteRepo.listFiles();
-
-        for (File file : Objects.requireNonNull(files)) {
-            addFileToList(file, fileList);
-        }
-
-        assertEquals(expectedFiles.size(), fileList.size());
-
-        assertEquals(0, getSizeOfExpectedFiles(fileList, expectedFiles));
+        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
     public void testBasicDeployWithPackagingAsBom() throws Exception {
@@ -408,7 +406,6 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         mojo.execute();
 
         List<String> expectedFiles = new ArrayList<>();
-        List<String> fileList = new ArrayList<>();
 
         expectedFiles.add("org");
         expectedFiles.add("apache");
@@ -428,15 +425,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         expectedFiles.add("maven-metadata.xml.sha1");
         remoteRepo = new File(remoteRepo, "basic-deploy-bom");
 
-        File[] files = remoteRepo.listFiles();
-
-        for (File file : Objects.requireNonNull(files)) {
-            addFileToList(file, fileList);
-        }
-
-        assertEquals(expectedFiles.size(), fileList.size());
-
-        assertEquals(0, getSizeOfExpectedFiles(fileList, expectedFiles));
+        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
     public void testDeployIfArtifactFileIsNull() throws Exception {
@@ -547,7 +537,6 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         // check the artifacts in remote repository
         List<String> expectedFiles = new ArrayList<>();
-        List<String> fileList = new ArrayList<>();
 
         expectedFiles.add("org");
         expectedFiles.add("apache");
@@ -583,15 +572,8 @@ public class DeployMojoTest extends AbstractMojoTestCase {
 
         remoteRepo = new File(remoteRepo, "basic-deploy-with-attached-artifacts");
 
-        File[] files = remoteRepo.listFiles();
-
-        for (File file1 : Objects.requireNonNull(files)) {
-            addFileToList(file1, fileList);
-        }
-
-        assertEquals(expectedFiles.size(), fileList.size());
-
-        assertEquals(0, getSizeOfExpectedFiles(fileList, expectedFiles));
+        assertRepoExpectedFiles(remoteRepo, "remote", expectedFiles);
+        assertRepoExpectedFiles(ociArtifactsRepo, "oci-artifacts", expectedFiles);
     }
 
     public void testNonPomDeployWithAttachedArtifactsOnly() throws Exception {
@@ -726,7 +708,7 @@ public class DeployMojoTest extends AbstractMojoTestCase {
         }
     }
 
-    public void testInsaneAltDeploymentRepository() throws Exception {
+    public void testInvalidAltDeploymentRepositorySyntax() throws Exception {
         mojo = new DeployMojo();
 
         setVariableValueToObject(mojo, "project", project);
@@ -811,6 +793,16 @@ public class DeployMojoTest extends AbstractMojoTestCase {
                 mojo.getDeploymentRepository(project, null, "altReleaseDeploymentRepository::http://localhost", null));
     }
 
+    private void assertRepoExpectedFiles(File repo, String repoName, List<String> expectedFiles) {
+        File[] files = repo.listFiles();
+        List<String> fileList = new ArrayList<>();
+        for (File file : Objects.requireNonNull(files)) {
+            addFileToList(file, fileList);
+        }
+        assertEquals(repoName + " repository expected files", expectedFiles.size(), fileList.size());
+        assertEquals(repoName + " repository file sizes", 0, getSizeOfExpectedFiles(fileList, expectedFiles));
+    }
+
     private void addFileToList(File file, List<String> fileList) {
         if (!file.isDirectory()) {
             fileList.add(file.getName());
@@ -826,10 +818,12 @@ public class DeployMojoTest extends AbstractMojoTestCase {
     }
 
     private int getSizeOfExpectedFiles(List<String> fileList, List<String> expectedFiles) {
+        // make a copy of the expectedFiles to avoid modifying the original list
+        expectedFiles = new ArrayList<>(expectedFiles);
         for (String fileName : fileList) {
             // translate uniqueVersion to -SNAPSHOT
             fileName = fileName.replaceFirst("-\\d{8}\\.\\d{6}-\\d+", "-SNAPSHOT");
-
+            // Using remove() since the expected files list may contain duplicates
             if (!expectedFiles.remove(fileName)) {
                 fail(fileName + " is not included in the expected files");
             }
