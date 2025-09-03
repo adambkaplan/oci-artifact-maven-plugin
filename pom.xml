@@ -69,7 +69,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <javaVersion>8</javaVersion>
+    <javaVersion>17</javaVersion>
     <mavenVersion>3.9.9</mavenVersion>
     <!-- Maven bound -->
     <resolverVersion>1.9.22</resolverVersion>
@@ -94,6 +94,16 @@ under the License.
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>land.oras</groupId>
+      <artifactId>oras-java-sdk</artifactId>
+      <version>0.2.15</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>1.28.0</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-plugin-api</artifactId>
@@ -208,6 +218,12 @@ under the License.
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-nop</artifactId>
       <version>${slf4jVersion}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>1.21.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

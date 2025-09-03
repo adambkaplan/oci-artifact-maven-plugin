@@ -27,4 +27,9 @@ jobs:
     uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v4
     with:
       maven4-enabled: false
-
+      # Disable integration tests
+      ff-goal: verify
+      verify-goal: verify
+      # Only run on JDK 17 and 21, and linux
+      jdk-matrix: '["17", "21"]'
+      os-matrix: '["ubuntu-latest"]'

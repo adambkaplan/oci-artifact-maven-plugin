@@ -18,6 +18,14 @@
  */
 package org.apache.maven.plugins.deploy;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import land.oras.ContainerRef;
+import land.oras.LocalPath;
+import land.oras.Manifest;
+import land.oras.Registry;
+import land.oras.auth.UsernamePasswordProvider;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -51,6 +59,41 @@ public abstract class AbstractDeployMojo extends AbstractMojo {
      */
     @Parameter(property = "retryFailedDeploymentCount", defaultValue = "1")
     private int retryFailedDeploymentCount;
+
+    /**
+     * Container image repository to push the artifacts to. Must be a fully qualified image reference.
+     * Example: docker.io/myuser/myrepo
+     */
+    @Parameter(property = "imageRepo", required = true)
+    private String imageRepo;
+
+    /**
+     * Container image tag to use when pushing the artifacts to the registry.
+     * Default: latest
+     */
+    @Parameter(property = "imageTag", defaultValue = "latest")
+    private String imageTag;
+
+    /**
+     * Username to use when pushing the artifacts to the registry.
+     * Optional.
+     */
+    @Parameter(property = "registryUsername")
+    private String registryUsername;
+
+    /**
+     * Password to use when pushing the artifacts to the registry.
+     * Optional.
+     */
+    @Parameter(property = "registryPassword")
+    private String registryPassword;
+
+    /**
+     * Whether to skip TLS verification when pushing the artifacts to the registry.
+     * Default: false
+     */
+    @Parameter(property = "insecureTLSNoVerify", defaultValue = "false")
+    private boolean insecureTLSNoVerify;
 
     @Component
     private RuntimeInformation runtimeInformation;
@@ -129,55 +172,48 @@ public abstract class AbstractDeployMojo extends AbstractMojo {
     // next try can fail due to duplicate.
 
     protected void deploy(DeployRequest deployRequest) throws MojoExecutionException {
-        deployRemotely(deployRequest);
-        deployLocally(deployRequest);
-    }
-
-    /**
-     * Deploy the artifacts to the remote repository, with built in retries.
-     */
-    private void deployRemotely(DeployRequest deployRequest) throws MojoExecutionException {
-        int retryFailedDeploymentCounter = Math.max(1, Math.min(10, retryFailedDeploymentCount));
-        DeploymentException exception = null;
-        for (int count = 0; count < retryFailedDeploymentCounter; count++) {
-            try {
-                if (count > 0) {
-                    getLog().info("Retrying deployment attempt " + (count + 1) + " of " + retryFailedDeploymentCounter);
-                }
-
-                repositorySystem.deploy(session.getRepositorySession(), deployRequest);
-                exception = null;
-                break;
-            } catch (DeploymentException e) {
-                if (count + 1 < retryFailedDeploymentCounter) {
-                    getLog().warn("Encountered issue during deployment: " + e.getLocalizedMessage());
-                    getLog().debug(e);
-                }
-                if (exception == null) {
-                    exception = e;
-                }
-            }
-        }
-        if (exception != null) {
-            throw new MojoExecutionException(exception.getMessage(), exception);
-        }
+        deployOCI(deployRequest);
     }
 
     /**
      * Deploy the artifacts to the local build target directory.
      */
-    private void deployLocally(DeployRequest deployRequest) throws MojoExecutionException {
+    private void deployOCI(DeployRequest deployRequest) throws MojoExecutionException {
         DeployRequest deployRequestCopy = new DeployRequest();
         deployRequestCopy.setArtifacts(deployRequest.getArtifacts());
         deployRequestCopy.setMetadata(deployRequest.getMetadata());
         deployRequestCopy.setTrace(deployRequest.getTrace());
 
-        deployRequestCopy.setRepository(getRemoteRepository(
-                "build-target", "file://" + session.getExecutionRootDirectory() + "/target/oci-artifacts"));
+        deployRequestCopy.setRepository(getRemoteRepository("build-target", "file://" + getLocalRepositoryPath()));
         try {
             repositorySystem.deploy(session.getRepositorySession(), deployRequestCopy);
         } catch (DeploymentException e) {
             throw new MojoExecutionException(e.getMessage(), e);
         }
+        pushOCIArtifact(deployRequest);
+    }
+
+    protected String getLocalRepositoryPath() {
+        return session.getExecutionRootDirectory() + "/target/oci-artifacts";
+    }
+
+    private void pushOCIArtifact(DeployRequest deployRequest) throws MojoExecutionException {
+        // HACK - this just packages the whole contents of the build-target repository
+        // We could do better and have individual layers by GAV.
+        Path artifactPath = Paths.get(getLocalRepositoryPath());
+        // oras-java-sdk only supports a limited number of MIME types.
+        // use the default one for packaging a directory. Ideally maven can provide its own MIME type.
+        LocalPath localPath = LocalPath.of(artifactPath);
+        Registry.Builder builder = Registry.builder().defaults().withInsecure(insecureTLSNoVerify);
+        if (registryUsername != null
+                && registryUsername.length() > 0
+                && registryPassword != null
+                && registryPassword.length() > 0) {
+            builder = builder.withAuthProvider(new UsernamePasswordProvider(registryUsername, registryPassword));
+        }
+        Registry reg = builder.build();
+        getLog().info("Pushing artifact to registry: " + imageRepo + ":" + imageTag);
+        Manifest manifest = reg.pushArtifact(ContainerRef.parse(imageRepo + ":" + imageTag), localPath);
+        getLog().info("Pushed digest: " + manifest.getDigest());
     }
 }
