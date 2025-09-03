@@ -28,10 +28,25 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
+        <version>@mavenDeployPluginVersion@</version>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.opencontainers.maven.plugins</groupId>
+        <artifactId>oci-artifact-maven-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
           <skip>false</skip>
         </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>deploy</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
