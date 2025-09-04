@@ -21,6 +21,11 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    exclude-paths:
+      - "src/it/**"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
